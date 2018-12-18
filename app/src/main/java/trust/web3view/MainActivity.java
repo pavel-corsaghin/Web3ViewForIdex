@@ -1,8 +1,11 @@
 package trust.web3view;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.webkit.WebView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,6 +37,8 @@ public class MainActivity extends AppCompatActivity implements
     private Call<SignPersonalMessageRequest> callSignPersonalMessage;
     private Call<SignTypedMessageRequest> callSignTypedMessage;
     private Call<SignTransactionRequest> callSignTransaction;
+    private static final String TAG = "Web3View";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,8 +58,8 @@ public class MainActivity extends AppCompatActivity implements
     private void setupWeb3() {
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web3.setChainId(1);
-        web3.setRpcUrl("https://mainnet.infura.io/llyrtzQ3YhkdESt2Fzrk");
-        web3.setWalletAddress(new Address("0x242776e7ca6271e416e737adffcfeb22e8dc1b3c"));
+        web3.setRpcUrl("https://mainnet.infura.io/v3/95fa3a86534344ee9d1bf00e2b0d6d06");
+        web3.setWalletAddress(new Address("0xF18F1926648b2bABE9c6e3981D696d3613b53821"));
 
         web3.setOnSignMessageListener(message ->
                 callSignMessage = Trust.signMessage().message(message).call(this));
@@ -102,6 +107,24 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.e(TAG, "onActivityResult");
+        Log.e(TAG, data.getDataString());
+        Log.e(TAG, "requestCode: " + requestCode);
+        Log.e(TAG, "resultCode: " + resultCode);
+        Log.e(TAG, "resultCode: " + Activity.RESULT_OK);
+
+        String resultMessage;
+        if(resultCode == Activity.RESULT_OK){
+            resultMessage= "message signed ok :" + data.getDataString();
+        } else  {
+            resultMessage= "message cancelled";
+        }
+
+       new AlertDialog.Builder(this).setTitle("Sign result")
+               .setMessage(resultMessage)
+               .setPositiveButton("ok", null)
+               .show();
+
         if (callSignTransaction != null) {
             callSignTransaction.onActivityResult(requestCode, resultCode, data, response -> {
                 Transaction transaction = response.request.body();

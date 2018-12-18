@@ -25,9 +25,14 @@ import trust.core.entity.Transaction;
 import trust.core.entity.TypedData;
 
 public class Web3View extends WebView {
+    private static final String TAG = "Web3View";
+    private static final String HTTPS_PREFFIX = "https://";
+    private static final String HTTP_PREFFIX = "http://";
     private static final String JS_PROTOCOL_CANCELLED = "cancelled";
     private static final String JS_PROTOCOL_ON_SUCCESSFUL = "onSignSuccessful(%1$s, \"%2$s\")";
     private static final String JS_PROTOCOL_ON_FAILURE = "onSignError(%1$s, \"%2$s\")";
+    private static final String APP_MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 5.1.1; Nexus 5 Build/LMY48B; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/43.0.2357.65 Mobile Safari/537.36";
+
     @Nullable
     private OnSignTransactionListener onSignTransactionListener;
     @Nullable
@@ -60,7 +65,8 @@ public class Web3View extends WebView {
 
     @Override
     public void setWebViewClient(WebViewClient client) {
-        super.setWebViewClient(new WrapWebViewClient(webViewClient, client, jsInjectorClient));
+//        super.setWebViewClient(client);
+        super.setWebViewClient(webViewClient);
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -75,6 +81,8 @@ public class Web3View extends WebView {
         webSettings.setUseWideViewPort(true);
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setDomStorageEnabled(true);
+        webSettings.setUserAgentString(APP_MOBILE_USER_AGENT);
+
         addJavascriptInterface(new SignCallbackJSInterface(
                 this,
                 innerOnSignTransactionListener,
@@ -82,7 +90,16 @@ public class Web3View extends WebView {
                 innerOnSignPersonalMessageListener,
                 innerOnSignTypedMessageListener), "trust");
 
-        super.setWebViewClient(webViewClient);
+        setWebChromeClient(new WebChromeClient());
+        setWebViewClient(webViewClient);
+    }
+
+    @Override
+    public void loadUrl(String url) {
+        if (!url.startsWith(HTTPS_PREFFIX) && !url.startsWith(HTTP_PREFFIX)) {
+            url = HTTPS_PREFFIX + url;
+        }
+        super.loadUrl(url);
     }
 
     @Override
@@ -136,7 +153,7 @@ public class Web3View extends WebView {
     public void setOnSignPersonalMessageListener(@Nullable OnSignPersonalMessageListener onSignPersonalMessageListener) {
         this.onSignPersonalMessageListener = onSignPersonalMessageListener;
     }
-    
+
     public void setOnSignTypedMessageListener(@Nullable OnSignTypedMessageListener onSignTypedMessageListener) {
         this.onSignTypedMessageListener = onSignTypedMessageListener;
     }
@@ -184,6 +201,7 @@ public class Web3View extends WebView {
     private final OnSignTransactionListener innerOnSignTransactionListener = new OnSignTransactionListener() {
         @Override
         public void onSignTransaction(Transaction transaction) {
+            Log.e(TAG, "onSignTransaction");
             if (onSignTransactionListener != null) {
                 onSignTransactionListener.onSignTransaction(transaction);
             }
@@ -193,6 +211,8 @@ public class Web3View extends WebView {
     private final OnSignMessageListener innerOnSignMessageListener = new OnSignMessageListener() {
         @Override
         public void onSignMessage(Message message) {
+            Log.e(TAG, "onSignMessage");
+
             if (onSignMessageListener != null) {
                 onSignMessageListener.onSignMessage(message);
             }
@@ -202,6 +222,7 @@ public class Web3View extends WebView {
     private final OnSignPersonalMessageListener innerOnSignPersonalMessageListener = new OnSignPersonalMessageListener() {
         @Override
         public void onSignPersonalMessage(Message message) {
+            Log.e(TAG, "onSignPersonalMessage");
             onSignPersonalMessageListener.onSignPersonalMessage(message);
         }
     };
@@ -209,6 +230,7 @@ public class Web3View extends WebView {
     private final OnSignTypedMessageListener innerOnSignTypedMessageListener = new OnSignTypedMessageListener() {
         @Override
         public void onSignTypedMessage(Message<TypedData[]> message) {
+            Log.e(TAG, "onSignTypedMessage");
             onSignTypedMessageListener.onSignTypedMessage(message);
         }
     };

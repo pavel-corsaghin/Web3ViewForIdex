@@ -3,6 +3,7 @@ package trust.web3;
 import android.net.http.SslError;
 import android.text.TextUtils;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -18,7 +19,7 @@ import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.N;
 
 public class Web3ViewClient extends WebViewClient {
-
+    String TAG = "Web3ViewClient";
     private final Object lock = new Object();
 
     private final JsInjectorClient jsInjectorClient;
@@ -56,6 +57,8 @@ public class Web3ViewClient extends WebViewClient {
     }
 
     private boolean shouldOverrideUrlLoading(WebView webView, String url, boolean isMainFrame, boolean isRedirect) {
+        Log.e(TAG, "shouldOverrideUrlLoading: " + url);
+
         boolean result = false;
         synchronized (lock) {
             isInjected = false;
@@ -80,47 +83,75 @@ public class Web3ViewClient extends WebViewClient {
         if (request == null) {
             return null;
         }
+
+        Log.e(TAG, "shouldInterceptRequest: " + request.getUrl());
+
         if (!request.getMethod().equalsIgnoreCase("GET") || !request.isForMainFrame()) {
-             if (request.getMethod().equalsIgnoreCase("GET")
-                     && (request.getUrl().toString().contains(".js")
-                        || request.getUrl().toString().contains("json")
-                        || request.getUrl().toString().contains("css"))) {
+            if (request.getMethod().equalsIgnoreCase("GET") && (request.getUrl().toString().contains(".js")
+                    || request.getUrl().toString().contains("json")
+                    || request.getUrl().toString().contains("css"))) {
+                Log.e(TAG, "check to inject script");
                 synchronized (lock) {
+                    Log.e(TAG, "synchronized");
                     if (!isInjected) {
                         injectScriptFile(view);
                         isInjected = true;
                     }
                 }
+
+
             }
             super.shouldInterceptRequest(view, request);
             return null;
         }
-
+        Log.e(TAG, "before  HttpUrl.parse");
         HttpUrl httpUrl = HttpUrl.parse(request.getUrl().toString());
+        Log.e(TAG, "after  HttpUrl.parse");
+
         if (httpUrl == null) {
             return null;
         }
+
+        Log.e(TAG, "before  jsInjectorClient.loadUrl");
+
         Map<String, String> headers = request.getRequestHeaders();
         JsInjectorResponse response;
         try {
             response = jsInjectorClient.loadUrl(httpUrl.toString(), headers);
         } catch (Exception ex) {
+            ex.printStackTrace();
             return null;
         }
-        if (response == null || response.isRedirect) {
+
+        Log.e(TAG, "after  jsInjectorClient.loadUrl");
+
+
+
+        Log.e(TAG, "before  WebResourceResponse");
+
+        if (response == null || response.data == null ||  response.isRedirect) {
+            Log.e(TAG, "return null");
+
             return null;
         } else {
+            Log.e(TAG, "init ByteArrayInputStream");
+            Log.e(TAG, "response.data.getBytes(): " + response.data.getBytes());
+
             ByteArrayInputStream inputStream = new ByteArrayInputStream(response.data.getBytes());
-            WebResourceResponse webResourceResponse = new WebResourceResponse(
-                    response.mime, response.charset, inputStream);
+            Log.e(TAG, "init WebResourceResponse");
+
+            WebResourceResponse webResourceResponse = new WebResourceResponse(response.mime, response.charset, inputStream);
             synchronized (lock) {
                 isInjected = true;
             }
+            Log.e(TAG, "after  WebResourceResponse");
             return webResourceResponse;
         }
     }
 
     private void injectScriptFile(WebView view) {
+        Log.e(TAG, "injectScriptFile:");
+
         String js = jsInjectorClient.assembleJs(view.getContext(), "%1$s%2$s");
         byte[] buffer = js.getBytes();
         String encoded = Base64.encodeToString(buffer, Base64.NO_WRAP);

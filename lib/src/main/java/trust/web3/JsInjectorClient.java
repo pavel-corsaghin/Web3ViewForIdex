@@ -34,7 +34,7 @@ class JsInjectorClient {
 
     private int chainId = 1;
     private Address walletAddress;
-    private String rpcUrl = "https://mainnet.infura.io/llyrtzQ3YhkdESt2Fzrk";
+    private String rpcUrl = "https://mainnet.infura.io/v3/95fa3a86534344ee9d1bf00e2b0d6d06";
 
     JsInjectorClient(Context context) {
         this.context = context;
